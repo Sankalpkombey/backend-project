@@ -15,7 +15,8 @@ import fs from "fs";
             resource_type: "auto"
         })
         // file has been uploaded successfully, remove it from the server
-        console.log("File uploaded successfully to Cloudinary", response.url);
+        //console.log("File uploaded successfully to Cloudinary", response.url);
+        fs.unlinkSync(localFilePath);
         return response;
     } catch (error) {
         fs.unlinkSync(localFilePath); // Remove the file from the server as it failed to upload to Cloudinary
