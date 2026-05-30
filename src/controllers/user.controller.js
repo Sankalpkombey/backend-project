@@ -306,6 +306,13 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
     return res.status(200).json(
         new ApiResponse(200, { user }, "Avatar updated successfully")
     );
+
+    // old image deletion from cloudinary
+    const oldAvatartobeDeleted = req.user?.avatar?.split("/")?.slice(-1)?.[0]?.split(".")?.[0];
+
+    if (oldAvatartobeDeleted) {
+        await uploadOnCloudinary.delete(oldAvatartobeDeleted);
+    }
 })
 
 const updateUserCoverImage = asyncHandler(async (req, res) => {
@@ -335,6 +342,13 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
     return res.status(200).json(
         new ApiResponse(200, { user }, "Cover image updated successfully")
     );
+
+    // old image deletion from cloudinary
+    const oldCoverImagetobeDeleted = req.user?.coverImage?.split("/")?.slice(-1)?.[0]?.split(".")?.[0];
+
+    if (oldCoverImagetobeDeleted) {
+        await uploadOnCloudinary.delete(oldCoverImagetobeDeleted);
+    }
 })
 
 export {
