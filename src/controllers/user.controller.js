@@ -1,4 +1,5 @@
 import { asyncHandler } from '../utils/asyncHandler.js';
+import mongoose from 'mongoose';
 import {ApiError} from '../utils/ApiError.js';
 import {User} from '../models/user.model.js';
 import { uploadOnCloudinary } from '../utils/cloudinary.js';
@@ -182,7 +183,7 @@ const logoutUser = asyncHandler(async (req, res) => {
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
 
-    const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken
+    const incomingRefreshToken = req.cookies?.refreshToken || req.body?.refreshToken
 
     if (!incomingRefreshToken) {
         throw new ApiError(401, "Unauthorized request");
@@ -206,7 +207,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
             secure: true
         }
     
-        const { accessToken, newrefreshToken } = await generateAccessAndRefreshTokens(user._id)
+        const { accessToken, refreshToken: newrefreshToken } = await generateAccessAndRefreshTokens(user._id)
     
         return res.status(200)
         .cookie("accessToken", accessToken, options)
@@ -266,9 +267,8 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
         req.user._id,
         {
             $set: {
-                fullname: fullname || user.fullname,
-                username: username?.toLowerCase() || user.username,
-                email: email?.toLowerCase() || user.email
+                fullname,
+                email
             }
         },
         { new: true }
@@ -293,6 +293,13 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
         throw new ApiError(500, "Error while uploading avatar");
     }
 
+     // old image deletion from cloudinary
+    const oldAvatartobeDeleted = req.user?.avatar?.split("/")?.slice(-1)?.[0]?.split(".")?.[0];
+
+    if (oldAvatartobeDeleted) {
+        await uploadOnCloudinary.delete(oldAvatartobeDeleted);
+    }
+
     const user = await User.findByIdAndUpdate(
         req.user?._id,
         {
@@ -306,13 +313,6 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
     return res.status(200).json(
         new ApiResponse(200, { user }, "Avatar updated successfully")
     );
-
-    // old image deletion from cloudinary
-    const oldAvatartobeDeleted = req.user?.avatar?.split("/")?.slice(-1)?.[0]?.split(".")?.[0];
-
-    if (oldAvatartobeDeleted) {
-        await uploadOnCloudinary.delete(oldAvatartobeDeleted);
-    }
 })
 
 const updateUserCoverImage = asyncHandler(async (req, res) => {
@@ -329,6 +329,13 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
         throw new ApiError(500, "Error while uploading cover image");
     }
 
+    // old image deletion from cloudinary
+    const oldCoverImagetobeDeleted = req.user?.coverImage?.split("/")?.slice(-1)?.[0]?.split(".")?.[0];
+
+    if (oldCoverImagetobeDeleted) {
+        await uploadOnCloudinary.delete(oldCoverImagetobeDeleted);
+    }
+
     const user = await User.findByIdAndUpdate(
         req.user?._id,
         {
@@ -342,13 +349,6 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
     return res.status(200).json(
         new ApiResponse(200, { user }, "Cover image updated successfully")
     );
-
-    // old image deletion from cloudinary
-    const oldCoverImagetobeDeleted = req.user?.coverImage?.split("/")?.slice(-1)?.[0]?.split(".")?.[0];
-
-    if (oldCoverImagetobeDeleted) {
-        await uploadOnCloudinary.delete(oldCoverImagetobeDeleted);
-    }
 })
 
 const getUserChannelProfile = asyncHandler(async (req, res) => {
@@ -366,7 +366,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         },
         {
             $lookup: {
-                from: "subsciptions",
+                from: "subscriptions",
                 localField: "_id",
                 foreignField: "channel",
                 as: "subscribers" 
@@ -374,7 +374,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         },
         {
             $lookup: {
-                from: "subsciptions",
+                from: "subscriptions",
                 localField: "_id",
                 foreignField: "subscriber",
                 as: "subscribedTo"
